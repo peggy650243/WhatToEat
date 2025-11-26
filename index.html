@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天吃什麼？隨機拉霸機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #FFF7ED; /* Orange-50 */
+            overflow: hidden; /* Prevent scrolling during confetti */
+            touch-action: manipulation; /* Improves touch response */
+        }
+
+        .slot-window {
+            box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(180deg, #f3f4f6 0%, #ffffff 20%, #ffffff 80%, #f3f4f6 100%);
+        }
+
+        /* 3D Button Effect */
+        .btn-push {
+            transition: all 0.1s;
+            box-shadow: 0px 6px 0px 0px #b91c1c; /* dark red shadow */
+        }
+        .btn-push:active {
+            transform: translateY(4px);
+            box-shadow: 0px 2px 0px 0px #b91c1c;
+        }
+        .btn-push:disabled {
+            background-color: #9ca3af;
+            box-shadow: 0px 4px 0px 0px #4b5563;
+            transform: translateY(4px);
+            cursor: not-allowed;
+        }
+        
+        /* Secondary Button Style */
+        .btn-secondary {
+            transition: all 0.1s;
+            box-shadow: 0px 4px 0px 0px #1d4ed8; /* blue-700 */
+        }
+        .btn-secondary:active {
+            transform: translateY(2px);
+            box-shadow: 0px 2px 0px 0px #1d4ed8;
+        }
+
+        .item-text {
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        /* Animation for the "reel" blur effect */
+        .blur-motion {
+            filter: blur(2px);
+            color: #d97706; /* amber-600 */
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col items-center justify-center p-4 relative">
+
+    <!-- Canvas for Confetti -->
+    <canvas id="confetti-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
+
+    <!-- Main Container -->
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-orange-200 z-10">
+        
+        <!-- Header -->
+        <div class="bg-orange-500 p-6 text-center">
+            <h1 class="text-3xl font-black text-white tracking-widest drop-shadow-md">今天吃什麼？</h1>
+            <p class="text-orange-100 text-sm mt-1">煩惱退散！讓拉霸機幫你決定</p>
+        </div>
+
+        <!-- Slot Machine Display -->
+        <div class="p-8 bg-orange-50 flex flex-col items-center gap-6">
+            
+            <!-- The "Window" -->
+            <div class="slot-window w-full h-40 bg-gray-100 rounded-xl border-4 border-gray-400 flex items-center justify-center overflow-hidden relative">
+                <!-- Decorative lines inside window -->
+                <div class="absolute w-full h-[1px] bg-red-500/20 top-1/2 left-0 z-0"></div>
+                
+                <!-- The Food Text -->
+                <div id="display-text" class="text-4xl md:text-5xl font-black text-gray-800 z-10 text-center px-2 leading-tight item-text">
+                    準備好了嗎？
+                </div>
+            </div>
+
+            <!-- Result Message (Hidden initially) -->
+            <div id="result-message" class="h-8 text-orange-600 font-bold text-center opacity-0 transition-opacity duration-300">
+                命運的選擇是...
+            </div>
+
+            <div class="w-full flex flex-col gap-3">
+                <!-- Action Button -->
+                <button id="spin-btn" onclick="startSpin()" class="btn-push w-full bg-red-500 hover:bg-red-600 text-white text-2xl font-bold py-5 rounded-2xl tracking-wider uppercase flex items-center justify-center gap-2">
+                    <span>🎰</span> 幫我選！
+                </button>
+
+                <!-- Google Maps Button (Hidden initially) -->
+                <a id="maps-btn" href="#" target="_blank" class="hidden btn-secondary w-full bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold py-3 rounded-xl tracking-wide uppercase flex items-center justify-center gap-2 no-underline">
+                    <span>📍</span> 搜尋附近的餐廳
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Configuration with Weights
+        // initialWeight: The starting probability weight. 
+        // currentWeight: Will be modified during runtime.
+        const initialFoodOptions = [
+            { name: "雞肉飯", icon: "🍚" },
+            { name: "咖喱飯", icon: "🍛" },
+            { name: "拉麵", icon: "🍜" },
+            { name: "牛肉麵", icon: "🐮" },
+            { name: "滷肉飯", icon: "🥢" },
+            { name: "披薩", icon: "🍕" },
+            { name: "炸雞", icon: "🍗" },
+            { name: "漢堡", icon: "🍔" },
+            { name: "早午餐", icon: "🍳" },
+            { name: "豬排", icon: "🍱" },
+            { name: "壽司", icon: "🍣" },
+            { name: "鱸魚湯", icon: "🐟" },
+            { name: "韓式料理", icon: "🥘" },
+            { name: "義大利麵", icon: "🍝" },
+            { name: "火鍋", icon: "🍲" },
+            { name: "快炒", icon: "🍤" },
+            { name: "鐵板燒", icon: "🥩" }
+        ];
+
+        // Add weight property to manage probability
+        // Default weight is 100. If selected, it drops to 10.
+        let foodOptions = initialFoodOptions.map(item => ({ ...item, weight: 100 }));
+
+        const displayEl = document.getElementById('display-text');
+        const spinBtn = document.getElementById('spin-btn');
+        const mapsBtn = document.getElementById('maps-btn');
+        const resultMsg = document.getElementById('result-message');
+
+        let isSpinning = false;
+
+        // Core Spin Logic
+        function startSpin() {
+            if (isSpinning) return;
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            spinBtn.innerHTML = `<span>🎲</span> 選擇中...`;
+            
+            // Hide result elements
+            resultMsg.style.opacity = '0';
+            mapsBtn.classList.add('hidden');
+            
+            // Add visual blur effect for speed
+            displayEl.classList.add('blur-motion');
+
+            let speed = 50; // Initial speed (ms)
+            let counter = 0;
+            const totalSpins = 30 + Math.floor(Math.random() * 10); // Random duration
+
+            // Clear previous confetti
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Fast cycling loop (Visual only - purely random for effect)
+            const runLoop = () => {
+                // Pick a random food just for visual display
+                const visualRandom = foodOptions[Math.floor(Math.random() * foodOptions.length)];
+                displayEl.textContent = `${visualRandom.icon} ${visualRandom.name}`;
+
+                counter++;
+
+                if (counter < totalSpins) {
+                    // Continue spinning
+                    setTimeout(runLoop, speed);
+                } else {
+                    // Slow down phase (last few ticks)
+                    if (speed < 300) {
+                        speed += 50; // Decelerate
+                        setTimeout(runLoop, speed);
+                    } else {
+                        // STOP
+                        finishSpin();
+                    }
+                }
+            };
+
+            runLoop();
+        }
+
+        // Weighted Random Selection
+        function getWeightedWinner() {
+            const totalWeight = foodOptions.reduce((sum, item) => sum + item.weight, 0);
+            let randomNum = Math.random() * totalWeight;
+            
+            for (let i = 0; i < foodOptions.length; i++) {
+                if (randomNum < foodOptions[i].weight) {
+                    return foodOptions[i];
+                }
+                randomNum -= foodOptions[i].weight;
+            }
+            return foodOptions[0]; // Fallback
+        }
+
+        function finishSpin() {
+            // Pick final winner using weighted logic
+            const winner = getWeightedWinner();
+            
+            // Reduce probability for this item for next time
+            // Reset others slightly? No, just reduce this one significantly.
+            // Or we can simple decay: set this to 10, keep others at 100.
+            foodOptions.forEach(item => {
+                if (item.name === winner.name) {
+                    item.weight = 10; // Low probability for next turn
+                } else {
+                    // Optionally slowly recover other weights if you wanted complex logic
+                    // item.weight = 100; 
+                }
+            });
+
+            // Update UI
+            displayEl.classList.remove('blur-motion');
+            displayEl.innerHTML = `<span class="text-red-600 block transform scale-110 transition-transform">${winner.icon} ${winner.name}</span>`;
+            
+            resultMsg.textContent = `就決定是 ${winner.name} 了！`;
+            resultMsg.style.opacity = '1';
+
+            spinBtn.innerHTML = `<span>🔄</span> 再選一次`;
+            spinBtn.disabled = false;
+            
+            // Show Maps Button
+            mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(winner.name + " 附近")}`;
+            mapsBtn.classList.remove('hidden');
+            mapsBtn.classList.add('flex'); // Ensure flex display works when unhidden
+
+            isSpinning = false;
+
+            // Trigger Confetti
+            fireConfetti();
+        }
+
+        // --- Simple Confetti Implementation ---
+        function fireConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const particleCount = 100;
+            const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 + 100, // Start from center-ish
+                    w: Math.random() * 10 + 5,
+                    h: Math.random() * 10 + 5,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 1) * 20 - 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 10,
+                    gravity: 0.5,
+                    drag: 0.96
+                });
+            }
+
+            function animateConfetti() {
+                if (particles.length === 0) return;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.vx *= p.drag;
+                    p.vy *= p.drag;
+                    p.rotation += p.rotationSpeed;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+                    ctx.restore();
+
+                    // Remove particles off screen
+                    if (p.y > canvas.height) {
+                        particles.splice(i, 1);
+                    }
+                }
+
+                if (particles.length > 0) {
+                    requestAnimationFrame(animateConfetti);
+                }
+            }
+
+            animateConfetti();
+        }
+
+        // Handle Resize for canvas
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confetti-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+    </script>
+</body>
+</html>
