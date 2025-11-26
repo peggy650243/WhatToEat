@@ -2,8 +2,21 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>今天吃什麼？隨機拉霸機</title>
+    
+    <!-- iOS / Safari 主畫面設定 (Web App) -->
+    <!-- 1. 設定主畫面圖示 (你可以將 href 換成你自己上傳到 GitHub 的圖片連結) -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/doodle/192/rice-bowl.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/doodle/192/rice-bowl.png">
+    
+    <!-- 2. 開啟 Web App 模式 (隱藏瀏覽器網址列) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- 3. 設定狀態列顏色 (半透明或黑色) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FFF7ED">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -12,6 +25,7 @@
             background-color: #FFF7ED; /* Orange-50 */
             overflow: hidden; /* Prevent scrolling during confetti */
             touch-action: manipulation; /* Improves touch response */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
         }
 
         .slot-window {
