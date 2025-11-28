@@ -5,27 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>今天吃什麼？隨機拉霸機</title>
     
-    <!-- === 圖示設定開始 === -->
-    <!-- 
-       說明：
-       這張圖片是網路上公開的「飯碗」圖示。
-       如果你想用自己的圖，請將 href="..." 裡面的網址換成你圖片的連結 (例如 GitHub 上圖片的 Raw 連結)。
-       建議圖片尺寸為正方形，至少 180x180 像素。
-    -->
-    
-    <!-- 1. iOS 主畫面圖示 (關鍵) -->
+    <!-- === 圖示設定 === -->
     <link rel="apple-touch-icon" sizes="180x180" href="https://github.com/peggy650243/wannaeat/blob/main/wannaeat_thumbnail.png?raw=true">
-    
-    <!-- 2. 一般瀏覽器分頁小圖示 (Favicon) -->
     <link rel="icon" type="image/png" sizes="32x32" href="https://github.com/peggy650243/wannaeat/blob/main/wannaeat_thumbnail.png?raw=true">
     <link rel="shortcut icon" href="https://github.com/peggy650243/wannaeat/blob/main/wannaeat_thumbnail.png?raw=true">
     
-    <!-- === 圖示設定結束 === -->
-    
-    <!-- 開啟 Web App 模式 (隱藏瀏覽器網址列) -->
+    <!-- 開啟 Web App 模式 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    
-    <!-- 設定狀態列顏色 (半透明或黑色) -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#FFF7ED">
 
@@ -35,9 +21,9 @@
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background-color: #FFF7ED; /* Orange-50 */
-            overflow: hidden; /* Prevent scrolling during confetti */
-            touch-action: manipulation; /* Improves touch response */
-            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on iOS */
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .slot-window {
@@ -45,7 +31,6 @@
             background: linear-gradient(180deg, #f3f4f6 0%, #ffffff 20%, #ffffff 80%, #f3f4f6 100%);
         }
 
-        /* 3D Button Effect */
         .btn-push {
             transition: all 0.1s;
             box-shadow: 0px 6px 0px 0px #b91c1c; /* dark red shadow */
@@ -61,7 +46,6 @@
             cursor: not-allowed;
         }
         
-        /* Secondary Button Style */
         .btn-secondary {
             transition: all 0.1s;
             box-shadow: 0px 4px 0px 0px #1d4ed8; /* blue-700 */
@@ -75,7 +59,6 @@
             text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
         }
 
-        /* Animation for the "reel" blur effect */
         .blur-motion {
             filter: blur(2px);
             color: #d97706; /* amber-600 */
@@ -84,44 +67,34 @@
 </head>
 <body class="h-screen w-full flex flex-col items-center justify-center p-4 relative">
 
-    <!-- Canvas for Confetti -->
     <canvas id="confetti-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
 
-    <!-- Main Container -->
     <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-orange-200 z-10">
         
-        <!-- Header -->
         <div class="bg-orange-500 p-6 text-center">
             <h1 class="text-3xl font-black text-white tracking-widest drop-shadow-md">今天吃什麼？</h1>
             <p class="text-orange-100 text-sm mt-1">煩惱退散！讓拉霸機幫你決定</p>
         </div>
 
-        <!-- Slot Machine Display -->
         <div class="p-8 bg-orange-50 flex flex-col items-center gap-6">
             
-            <!-- The "Window" -->
             <div class="slot-window w-full h-40 bg-gray-100 rounded-xl border-4 border-gray-400 flex items-center justify-center overflow-hidden relative">
-                <!-- Decorative lines inside window -->
                 <div class="absolute w-full h-[1px] bg-red-500/20 top-1/2 left-0 z-0"></div>
                 
-                <!-- The Food Text -->
                 <div id="display-text" class="text-4xl md:text-5xl font-black text-gray-800 z-10 text-center px-2 leading-tight item-text">
                     準備好了嗎？
                 </div>
             </div>
 
-            <!-- Result Message (Hidden initially) -->
             <div id="result-message" class="h-8 text-orange-600 font-bold text-center opacity-0 transition-opacity duration-300">
                 命運的選擇是...
             </div>
 
             <div class="w-full flex flex-col gap-3">
-                <!-- Action Button -->
                 <button id="spin-btn" onclick="startSpin()" class="btn-push w-full bg-red-500 hover:bg-red-600 text-white text-2xl font-bold py-5 rounded-2xl tracking-wider uppercase flex items-center justify-center gap-2">
                     <span>🎰</span> 幫我選！
                 </button>
 
-                <!-- Google Maps Button (Hidden initially) -->
                 <a id="maps-btn" href="#" target="_blank" class="hidden btn-secondary w-full bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold py-3 rounded-xl tracking-wide uppercase flex items-center justify-center gap-2 no-underline">
                     <span>📍</span> 搜尋附近的餐廳
                 </a>
@@ -130,9 +103,9 @@
     </div>
 
     <script>
-        // Data Configuration with Weights
-        // initialWeight: The starting probability weight. 
-        // currentWeight: Will be modified during runtime.
+        // Data Configuration
+        // name: 顯示名稱
+        // search: (選填) Google Maps 搜尋關鍵字。若沒填，預設會用 "name + 餐廳"
         const initialFoodOptions = [
             { name: "雞肉飯", icon: "🍚" },
             { name: "咖喱飯", icon: "🍛" },
@@ -141,7 +114,7 @@
             { name: "滷肉飯", icon: "🥢" },
             { name: "披薩", icon: "🍕" },
             { name: "炸雞", icon: "🍗" },
-            { name: "漢堡", icon: "🍔" },
+            { name: "漢堡", icon: "🍔", search: "漢堡店" }, // 指定搜尋漢堡店，避免搜尋到德國漢堡
             { name: "早午餐", icon: "🍳" },
             { name: "豬排", icon: "🍱" },
             { name: "壽司", icon: "🍣" },
@@ -149,12 +122,11 @@
             { name: "韓式料理", icon: "🥘" },
             { name: "義大利麵", icon: "🍝" },
             { name: "火鍋", icon: "🍲" },
-            { name: "快炒", icon: "🍤" },
+            { name: "快炒", icon: "🍤", search: "熱炒店" }, // 熱炒店通常比快炒更精準
             { name: "鐵板燒", icon: "🥩" }
         ];
 
-        // Add weight property to manage probability
-        // Default weight is 100. If selected, it drops to 10.
+        // Add weight property
         let foodOptions = initialFoodOptions.map(item => ({ ...item, weight: 100 }));
 
         const displayEl = document.getElementById('display-text');
@@ -164,7 +136,6 @@
 
         let isSpinning = false;
 
-        // Core Spin Logic
         function startSpin() {
             if (isSpinning) return;
 
@@ -172,49 +143,37 @@
             spinBtn.disabled = true;
             spinBtn.innerHTML = `<span>🎲</span> 選擇中...`;
             
-            // Hide result elements
             resultMsg.style.opacity = '0';
             mapsBtn.classList.add('hidden');
-            
-            // Add visual blur effect for speed
             displayEl.classList.add('blur-motion');
 
-            let speed = 50; // Initial speed (ms)
+            let speed = 50;
             let counter = 0;
-            const totalSpins = 30 + Math.floor(Math.random() * 10); // Random duration
+            const totalSpins = 30 + Math.floor(Math.random() * 10);
 
-            // Clear previous confetti
             const canvas = document.getElementById('confetti-canvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Fast cycling loop (Visual only - purely random for effect)
             const runLoop = () => {
-                // Pick a random food just for visual display
                 const visualRandom = foodOptions[Math.floor(Math.random() * foodOptions.length)];
                 displayEl.textContent = `${visualRandom.icon} ${visualRandom.name}`;
-
                 counter++;
 
                 if (counter < totalSpins) {
-                    // Continue spinning
                     setTimeout(runLoop, speed);
                 } else {
-                    // Slow down phase (last few ticks)
                     if (speed < 300) {
-                        speed += 50; // Decelerate
+                        speed += 50;
                         setTimeout(runLoop, speed);
                     } else {
-                        // STOP
                         finishSpin();
                     }
                 }
             };
-
             runLoop();
         }
 
-        // Weighted Random Selection
         function getWeightedWinner() {
             const totalWeight = foodOptions.reduce((sum, item) => sum + item.weight, 0);
             let randomNum = Math.random() * totalWeight;
@@ -225,26 +184,19 @@
                 }
                 randomNum -= foodOptions[i].weight;
             }
-            return foodOptions[0]; // Fallback
+            return foodOptions[0];
         }
 
         function finishSpin() {
-            // Pick final winner using weighted logic
             const winner = getWeightedWinner();
             
-            // Reduce probability for this item for next time
-            // Reset others slightly? No, just reduce this one significantly.
-            // Or we can simple decay: set this to 10, keep others at 100.
+            // Reduce weight for next time
             foodOptions.forEach(item => {
                 if (item.name === winner.name) {
-                    item.weight = 10; // Low probability for next turn
-                } else {
-                    // Optionally slowly recover other weights if you wanted complex logic
-                    // item.weight = 100; 
+                    item.weight = 10;
                 }
             });
 
-            // Update UI
             displayEl.classList.remove('blur-motion');
             displayEl.innerHTML = `<span class="text-red-600 block transform scale-110 transition-transform">${winner.icon} ${winner.name}</span>`;
             
@@ -254,18 +206,20 @@
             spinBtn.innerHTML = `<span>🔄</span> 再選一次`;
             spinBtn.disabled = false;
             
-            // Show Maps Button
-            mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(winner.name + " 附近")}`;
+            // === 關鍵的 Google Maps 搜尋邏輯優化 ===
+            // 如果該選項有指定的 search 關鍵字，就用指定的 (例如：漢堡 -> 漢堡店)
+            // 如果沒有，則預設加上 "餐廳" (例如：雞肉飯 -> 雞肉飯餐廳)
+            // 這種方式不需要寫 "附近"，Maps 會自動搜尋目前位置周邊的店家
+            const searchTerm = winner.search ? winner.search : `${winner.name}餐廳`;
+            
+            mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerm)}`;
             mapsBtn.classList.remove('hidden');
-            mapsBtn.classList.add('flex'); // Ensure flex display works when unhidden
+            mapsBtn.classList.add('flex');
 
             isSpinning = false;
-
-            // Trigger Confetti
             fireConfetti();
         }
 
-        // --- Simple Confetti Implementation ---
         function fireConfetti() {
             const canvas = document.getElementById('confetti-canvas');
             const ctx = canvas.getContext('2d');
@@ -279,7 +233,7 @@
             for (let i = 0; i < particleCount; i++) {
                 particles.push({
                     x: canvas.width / 2,
-                    y: canvas.height / 2 + 100, // Start from center-ish
+                    y: canvas.height / 2 + 100,
                     w: Math.random() * 10 + 5,
                     h: Math.random() * 10 + 5,
                     vx: (Math.random() - 0.5) * 20,
@@ -313,7 +267,6 @@
                     ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
                     ctx.restore();
 
-                    // Remove particles off screen
                     if (p.y > canvas.height) {
                         particles.splice(i, 1);
                     }
@@ -323,11 +276,9 @@
                     requestAnimationFrame(animateConfetti);
                 }
             }
-
             animateConfetti();
         }
 
-        // Handle Resize for canvas
         window.addEventListener('resize', () => {
             const canvas = document.getElementById('confetti-canvas');
             canvas.width = window.innerWidth;
