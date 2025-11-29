@@ -96,15 +96,19 @@
             border: 2px solid transparent;
         }
         .option-btn.selected {
-            background-color: #f97316; /* orange-500 */
-            color: white;
-            border-color: #c2410c; /* orange-700 */
-            box-shadow: 0 2px 4px -1px rgba(249, 115, 22, 0.4);
+            background-color: #ffedd5; /* orange-100 (淺色底) */
+            color: #c2410c; /* orange-700 (深色字) */
+            border-color: #fdba74; /* orange-300 (柔和邊框) */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
         .option-btn.unselected {
             background-color: white;
-            color: #4b5563; /* gray-600 */
-            border-color: #e5e7eb; /* gray-200 */
+            color: #9ca3af; /* gray-400 */
+            border-color: #f3f4f6; /* gray-100 */
+        }
+        .option-btn.unselected:active {
+            background-color: #f9fafb;
+            border-color: #e5e7eb;
         }
 
         /* 新增：自訂按鈕樣式 */
@@ -128,24 +132,44 @@
         }
         
         .custom-scrollbar::-webkit-scrollbar {
-            width: 10px; /* 加寬一點 */
-            background-color: #ffedd5; /* 確保軌道有底色 */
+            width: 10px;
+            background-color: #ffedd5;
         }
         
         .custom-scrollbar::-webkit-scrollbar-track {
-            background-color: #ffedd5; /* 淺橘色軌道，與白色背景區分 */
+            background-color: #ffedd5;
             border-radius: 10px;
-            box-shadow: inset 0 0 2px rgba(0,0,0,0.05); /* 增加一點內陰影讓軌道更明顯 */
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.05);
         }
         
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: #f97316; /* 深橘色滑塊 */
+            background-color: #f97316;
             border-radius: 10px;
-            border: 2px solid #ffedd5; /* 邊框顏色與軌道一致 */
+            border: 2px solid #ffedd5;
         }
         
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: #ea580c; /* Hover 時更深 */
+            background-color: #ea580c;
+        }
+
+        /* 浮動箭頭的漸變效果 */
+        #scroll-indicator {
+            transition: opacity 0.3s ease-in-out;
+        }
+        #scroll-indicator.hidden-indicator {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 語言選單樣式 */
+        .lang-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f97316' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none;
+            appearance: none;
         }
     </style>
 </head>
@@ -153,41 +177,74 @@
 
     <canvas id="confetti-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
 
-    <!-- 為了確保兩個頁面大小完全一致，使用相同的 CSS class 設定尺寸 -->
     <!-- 設定: w-full max-w-md h-[600px] max-h-[85vh] -->
 
     <!-- ========================================== -->
     <!-- 頁面 1: 選單設定頁 (Selection Screen) -->
     <!-- ========================================== -->
     <div id="selection-page" class="page p-4 z-20">
-        <div class="w-full max-w-md h-[600px] max-h-[85vh] flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-orange-200">
-            <!-- Header -->
-            <div class="bg-orange-500 p-5 text-center shrink-0">
-                <h1 class="text-2xl font-black text-white tracking-widest drop-shadow-md">想吃哪些？</h1>
-                <p class="text-orange-100 text-xs mt-1">勾選你想加入抽選的項目</p>
+        
+        <!-- 外層定位容器 -->
+        <div class="relative w-full max-w-md h-[600px] max-h-[85vh]">
+            
+            <!-- 語言選擇器 (卡片外部左上角) -->
+            <div class="absolute -top-12 left-0 z-30">
+                <select id="language-selector" onchange="changeLanguage(this.value)" class="lang-select bg-white/90 backdrop-blur-sm border border-orange-300 text-orange-600 text-xs font-bold rounded-full py-2 pl-4 pr-9 focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-md transition-all cursor-pointer hover:bg-white hover:shadow-lg transform active:scale-95">
+                    <option value="zh-TW">繁體中文</option>
+                    <option value="en">English</option>
+                </select>
             </div>
 
-            <!-- Controls -->
-            <div class="flex justify-between items-center px-6 py-3 bg-orange-50 border-b border-orange-100 shrink-0">
-                <span id="selected-count" class="text-sm font-bold text-orange-600">已選: 0</span>
-                <div class="flex gap-2">
-                    <button onclick="toggleAll(true)" class="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-full font-bold text-gray-600 active:bg-gray-100">全選</button>
-                    <button onclick="toggleAll(false)" class="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-full font-bold text-gray-600 active:bg-gray-100">清空</button>
+            <!-- 卡片本體 -->
+            <div class="w-full h-full flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-orange-200 relative">
+                <!-- Header -->
+                <div class="bg-orange-500 p-5 text-center shrink-0">
+                    <h1 class="text-2xl font-black text-white tracking-widest drop-shadow-md" data-i18n="selectionTitle">想吃哪些？</h1>
+                    <p class="text-orange-100 text-xs mt-1" data-i18n="selectionSubtitle">勾選你想加入抽選的項目</p>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex justify-between items-center px-6 py-3 bg-orange-50 border-b border-orange-100 shrink-0">
+                    <span id="selected-count" class="text-sm font-bold text-orange-600">已選: 0</span>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAll(true)" class="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-full font-bold text-gray-600 active:bg-gray-100" data-i18n="selectAll">全選</button>
+                        <button onclick="toggleAll(false)" class="text-xs bg-white border border-gray-300 px-3 py-1.5 rounded-full font-bold text-gray-600 active:bg-gray-100" data-i18n="clearAll">清空</button>
+                    </div>
+                </div>
+
+                <!-- Scroll Container Wrapper -->
+                <div class="flex-1 relative overflow-hidden flex flex-col">
+                    <!-- Options Grid (Scrollable) -->
+                    <div id="scroll-container" class="flex-1 p-4 custom-scrollbar">
+                        <div id="options-grid" class="grid grid-cols-2 gap-2 pb-4">
+                            <!-- JS will populate buttons here -->
+                        </div>
+                    </div>
+
+                    <!-- 浮動向下箭頭指示器 -->
+                    <div id="scroll-indicator" class="absolute bottom-4 left-0 w-full flex justify-center pointer-events-none z-10">
+                        <div class="bg-orange-300/90 text-orange-800 rounded-full p-2 shadow-lg animate-bounce backdrop-blur-sm border border-orange-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Action -->
+                <div class="p-4 bg-white border-t border-gray-100 shrink-0">
+                    <button id="go-slot-btn" onclick="goToSlotMachine()" class="btn-push w-full bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold py-4 rounded-xl tracking-wider uppercase shadow-lg" data-i18n="goToSlot">
+                        前往拉霸機 👉
+                    </button>
                 </div>
             </div>
 
-            <!-- Options Grid (Scrollable) -->
-            <div class="flex-1 p-4 custom-scrollbar">
-                <div id="options-grid" class="grid grid-cols-2 gap-2 pb-4">
-                    <!-- JS will populate buttons here -->
-                </div>
-            </div>
-
-            <!-- Footer Action -->
-            <div class="p-4 bg-white border-t border-gray-100 shrink-0">
-                <button id="go-slot-btn" onclick="goToSlotMachine()" class="btn-push w-full bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold py-4 rounded-xl tracking-wider uppercase shadow-lg">
-                    前往拉霸機 👉
-                </button>
+            <!-- 聯繫我們連結 (卡片外部右下角) -->
+            <!-- -bottom-8 讓它跑到卡片下方，right-0 對齊卡片右側 -->
+            <div class="absolute -bottom-8 right-0 z-30">
+                <a href="#" class="text-xs text-orange-400/70 hover:text-orange-600 transition-colors no-underline font-medium" data-i18n="contactUs">
+                    聯繫我們
+                </a>
             </div>
         </div>
     </div>
@@ -196,76 +253,140 @@
     <!-- 頁面 2: 拉霸機頁 (Slot Machine Screen) -->
     <!-- ========================================== -->
     <div id="slot-page" class="page hidden-right p-4 z-20">
-        <!-- 這裡也使用完全相同的尺寸設定 -->
-        <div class="w-full max-w-md h-[600px] max-h-[85vh] flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-orange-200 relative">
+        <!-- 為了保持一致性，這裡也加上了 relative wrapper -->
+        <div class="relative w-full max-w-md h-[600px] max-h-[85vh]">
             
-            <!-- Header -->
-            <div class="bg-orange-500 p-6 text-center relative shrink-0">
-                <!-- Back Button -->
-                <button onclick="backToSelection()" class="absolute left-2 top-1/2 -translate-y-1/2 text-white/90 hover:text-white p-3 rounded-full hover:bg-white/10 transition-colors" aria-label="返回選單">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <h1 class="text-3xl font-black text-white tracking-widest drop-shadow-md">今天吃什麼？</h1>
-                <p class="text-orange-100 text-sm mt-1">煩惱退散！讓拉霸機幫你決定</p>
-            </div>
-
-            <!-- Slot Display -->
-            <div class="flex-1 p-8 bg-orange-50 flex flex-col items-center justify-center gap-6 overflow-hidden">
+            <div class="w-full h-full flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-orange-200 relative">
                 
-                <div class="slot-window w-full h-40 bg-gray-100 rounded-xl border-4 border-gray-400 flex items-center justify-center overflow-hidden relative shrink-0">
-                    <div class="absolute w-full h-[1px] bg-red-500/20 top-1/2 left-0 z-0"></div>
+                <!-- Header -->
+                <div class="bg-orange-500 p-6 text-center relative shrink-0">
+                    <!-- Back Button -->
+                    <button onclick="backToSelection()" class="absolute left-2 top-1/2 -translate-y-1/2 text-white/90 hover:text-white p-3 rounded-full hover:bg-white/10 transition-colors" aria-label="返回選單">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h1 class="text-3xl font-black text-white tracking-widest drop-shadow-md" data-i18n="appTitle">今天吃什麼？</h1>
+                    <p class="text-orange-100 text-sm mt-1" data-i18n="appSubtitle">煩惱退散！讓拉霸機幫你決定</p>
+                </div>
+
+                <!-- Slot Display -->
+                <div class="flex-1 p-8 bg-orange-50 flex flex-col items-center justify-center gap-6 overflow-hidden">
                     
-                    <div id="display-text" class="text-4xl md:text-5xl font-black text-gray-800 z-10 text-center px-2 leading-tight item-text">
-                        準備好了嗎？
+                    <div class="slot-window w-full h-40 bg-gray-100 rounded-xl border-4 border-gray-400 flex items-center justify-center overflow-hidden relative shrink-0">
+                        <div class="absolute w-full h-[1px] bg-red-500/20 top-1/2 left-0 z-0"></div>
+                        
+                        <div id="display-text" class="text-4xl md:text-5xl font-black text-gray-800 z-10 text-center px-2 leading-tight item-text" data-i18n="slotReady">
+                            準備好了嗎？
+                        </div>
+                    </div>
+
+                    <div id="result-message" class="h-8 text-orange-600 font-bold text-center opacity-0 transition-opacity duration-300 shrink-0" data-i18n="destiny">
+                        命運的選擇是...
+                    </div>
+
+                    <div class="w-full flex flex-col gap-3 shrink-0">
+                        <button id="spin-btn" onclick="startSpin()" class="btn-push w-full bg-red-500 hover:bg-red-600 text-white text-2xl font-bold py-5 rounded-2xl tracking-wider uppercase flex items-center justify-center gap-2">
+                            <span data-i18n="spinBtn">🎰 幫我選！</span>
+                        </button>
+
+                        <a id="maps-btn" href="#" target="_blank" class="hidden btn-secondary w-full bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold py-3 rounded-xl tracking-wide uppercase flex items-center justify-center gap-2 no-underline">
+                            <span data-i18n="searchNearby">📍 搜尋附近的餐廳</span>
+                        </a>
                     </div>
                 </div>
-
-                <div id="result-message" class="h-8 text-orange-600 font-bold text-center opacity-0 transition-opacity duration-300 shrink-0">
-                    命運的選擇是...
-                </div>
-
-                <div class="w-full flex flex-col gap-3 shrink-0">
-                    <button id="spin-btn" onclick="startSpin()" class="btn-push w-full bg-red-500 hover:bg-red-600 text-white text-2xl font-bold py-5 rounded-2xl tracking-wider uppercase flex items-center justify-center gap-2">
-                        <span>🎰</span> 幫我選！
-                    </button>
-
-                    <a id="maps-btn" href="#" target="_blank" class="hidden btn-secondary w-full bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold py-3 rounded-xl tracking-wide uppercase flex items-center justify-center gap-2 no-underline">
-                        <span>📍</span> 搜尋附近的餐廳
-                    </a>
-                </div>
             </div>
-            
+
+            <!-- 聯繫我們連結 (在拉霸機頁面也顯示) -->
+            <div class="absolute -bottom-8 right-0 z-30">
+                <a href="#" class="text-xs text-orange-400/70 hover:text-orange-600 transition-colors no-underline font-medium" data-i18n="contactUs">
+                    聯繫我們
+                </a>
+            </div>
+
         </div>
     </div>
 
     <script>
-        // === 資料設定 ===
+        // === 翻譯資料庫 ===
+        const translations = {
+            "zh-TW": {
+                appTitle: "今天吃什麼？",
+                appSubtitle: "煩惱退散！讓拉霸機幫你決定",
+                selectionTitle: "想吃哪些？",
+                selectionSubtitle: "勾選你想加入抽選的項目",
+                selectedPrefix: "已選: ",
+                selectAll: "全選",
+                clearAll: "清空",
+                customBtn: "自訂...",
+                customPrompt: "請輸入你想吃的食物名稱：",
+                goToSlot: "前往拉霸機 👉",
+                selectAtLeastOne: "請至少選擇一項",
+                slotReady: "準備好了嗎？",
+                spinBtn: "🎰 幫我選！",
+                spinning: "🎲 選擇中...",
+                spinAgain: "🔄 再選一次",
+                destiny: "命運的選擇是...",
+                resultPrefix: "就決定是 ",
+                resultSuffix: " 了！",
+                searchNearby: "📍 搜尋附近的餐廳",
+                contactUs: "聯繫我們",
+                searchSuffix: "餐廳" // Google Map 搜尋後綴
+            },
+            "en": {
+                appTitle: "What to Eat?",
+                appSubtitle: "Let the slot machine decide!",
+                selectionTitle: "Cravings?",
+                selectionSubtitle: "Select items to include in the draw",
+                selectedPrefix: "Selected: ",
+                selectAll: "All",
+                clearAll: "Clear",
+                customBtn: "Custom...",
+                customPrompt: "Enter food name:",
+                goToSlot: "Go to Slot Machine 👉",
+                selectAtLeastOne: "Select at least one",
+                slotReady: "Ready?",
+                spinBtn: "🎰 Spin!",
+                spinning: "🎲 Spinning...",
+                spinAgain: "🔄 Spin Again",
+                destiny: "Destiny chooses...",
+                resultPrefix: "Let's eat ",
+                resultSuffix: "!",
+                searchNearby: "📍 Search Nearby",
+                contactUs: "Contact Us",
+                searchSuffix: " restaurant" // Google Map search suffix
+            }
+        };
+
+        // === 資料設定 (包含英文名稱) ===
         const initialData = [
-            { name: "雞肉飯", icon: "🍚" },
-            { name: "咖喱飯", icon: "🍛" },
-            { name: "拉麵", icon: "🍜" },
-            { name: "牛肉麵", icon: "🐮" },
-            { name: "滷肉飯", icon: "🥢" },
-            { name: "披薩", icon: "🍕" },
-            { name: "炸雞", icon: "🍗" },
-            { name: "漢堡", icon: "🍔", search: "漢堡店" }, 
-            { name: "早午餐", icon: "🍳" },
-            { name: "豬排", icon: "🍱" },
-            { name: "壽司", icon: "🍣" },
-            { name: "鱸魚湯", icon: "🐟" },
-            { name: "韓式料理", icon: "🥘" },
-            { name: "義大利麵", icon: "🍝" },
-            { name: "火鍋", icon: "🍲" },
-            { name: "快炒", icon: "🍤", search: "熱炒店" }, 
-            { name: "鐵板燒", icon: "🥩" }
+            { name: "雞肉飯", name_en: "Chicken Rice", icon: "🍚" },
+            { name: "咖喱飯", name_en: "Curry Rice", icon: "🍛" },
+            { name: "拉麵", name_en: "Ramen", icon: "🍜" },
+            { name: "牛肉麵", name_en: "Beef Noodles", icon: "🐮" },
+            { name: "滷肉飯", name_en: "Lu Rou Fan", icon: "🥢" },
+            { name: "披薩", name_en: "Pizza", icon: "🍕" },
+            { name: "炸雞", name_en: "Fried Chicken", icon: "🍗" },
+            { name: "漢堡", name_en: "Burger", icon: "🍔", search: "漢堡店", search_en: "Burger Place" }, 
+            { name: "早午餐", name_en: "Brunch", icon: "🍳" },
+            { name: "豬排", name_en: "Pork Cutlet", icon: "🍱" },
+            { name: "壽司", name_en: "Sushi", icon: "🍣" },
+            { name: "鱸魚湯", name_en: "Sea Bass Soup", icon: "🐟" },
+            { name: "韓式料理", name_en: "Korean Food", icon: "🥘" },
+            { name: "義大利麵", name_en: "Pasta", icon: "🍝" },
+            { name: "火鍋", name_en: "Hot Pot", icon: "🍲" },
+            { name: "熱炒", name_en: "Stir-fry", icon: "🍤", search: "熱炒店", search_en: "Stir-fry Restaurant" }, 
+            { name: "鐵板燒", name_en: "Teppanyaki", icon: "🥩" },
+            { name: "港式點心", name_en: "Dim Sum", icon: "🥟" },
+            { name: "豆漿油條", name_en: "Soy Milk & Youtiao", icon: "🥣" },
+            { name: "日式丼飯", name_en: "Donburi", icon: "🍚" }
         ];
 
         // 狀態變數
-        let allFoodOptions = []; // 儲存包含自訂選項的所有項目
-        let activeOptions = []; // 實際用於拉霸的列表
-        let selectedIndices = new Set(); // 在選單頁被勾選的索引
+        let currentLang = "zh-TW";
+        let allFoodOptions = []; 
+        let activeOptions = []; 
+        let selectedIndices = new Set(); 
         let isSpinning = false;
 
         // DOM 元素
@@ -279,39 +400,97 @@
         const spinBtn = document.getElementById('spin-btn');
         const mapsBtn = document.getElementById('maps-btn');
         const resultMsg = document.getElementById('result-message');
+        
+        // 捲動指示器
+        const scrollContainer = document.getElementById('scroll-container');
+        const scrollIndicator = document.getElementById('scroll-indicator');
 
         // === 初始化 ===
         function init() {
-            // 複製一份資料作為操作使用
-            allFoodOptions = [...initialData];
+            // 複製一份資料
+            allFoodOptions = JSON.parse(JSON.stringify(initialData));
             
             // 預設全選
             allFoodOptions.forEach((_, index) => selectedIndices.add(index));
+            
             renderSelectionGrid();
             updateSelectionUI();
+            
+            // 綁定捲動事件
+            scrollContainer.addEventListener('scroll', checkScroll);
+            window.addEventListener('resize', checkScroll);
+            
+            setTimeout(checkScroll, 100);
+        }
+
+        // === 語言切換邏輯 ===
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+
+            // 1. 更新介面靜態文字 (使用 data-i18n)
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    el.textContent = t[key];
+                }
+            });
+
+            // 2. 更新按鈕狀態文字 (如果有選擇狀態)
+            updateSelectionUI();
+
+            // 3. 更新拉霸機顯示文字 (如果還沒轉)
+            if (!isSpinning && resultMsg.style.opacity === '0') {
+                displayEl.textContent = t.slotReady;
+                spinBtn.innerHTML = `<span>${t.spinBtn}</span>`;
+            } else if (!isSpinning && resultMsg.style.opacity === '1') {
+                // 如果已經有結果，更新按鈕文字
+                spinBtn.innerHTML = `<span>${t.spinAgain}</span>`;
+            }
+
+            // 4. 重新渲染選項列表 (更新食物名稱)
+            renderSelectionGrid();
+        }
+
+        // 取得當前語言的食物名稱
+        function getFoodName(item) {
+            if (currentLang === 'en' && item.name_en) {
+                return item.name_en;
+            }
+            return item.name;
+        }
+
+        // === 捲動檢查邏輯 ===
+        function checkScroll() {
+            const threshold = 5;
+            const isAtBottom = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - threshold;
+            const hasScroll = scrollContainer.scrollHeight > scrollContainer.clientHeight;
+            
+            if (isAtBottom || !hasScroll) {
+                scrollIndicator.classList.add('hidden-indicator');
+            } else {
+                scrollIndicator.classList.remove('hidden-indicator');
+            }
         }
 
         // === 新增自訂選項功能 ===
         function addCustomOption() {
-            const input = prompt("請輸入你想吃的食物名稱：");
+            const t = translations[currentLang];
+            const input = prompt(t.customPrompt);
             if (input && input.trim() !== "") {
                 const newName = input.trim();
-                const newOption = { name: newName, icon: "✨", search: newName + " 餐廳" };
+                // 自訂選項不包含翻譯
+                const newOption = { name: newName, name_en: newName, icon: "✨", search: newName, search_en: newName };
                 
-                // 加入列表
                 allFoodOptions.push(newOption);
-                
-                // 自動勾選這個新選項 (索引值為長度-1)
                 selectedIndices.add(allFoodOptions.length - 1);
                 
-                // 重新渲染
                 renderSelectionGrid();
                 updateSelectionUI();
                 
-                // 自動捲動到底部
                 setTimeout(() => {
-                   const container = document.querySelector('.custom-scrollbar');
-                   container.scrollTop = container.scrollHeight;
+                   scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                   checkScroll();
                 }, 100);
             }
         }
@@ -320,31 +499,34 @@
         function renderSelectionGrid() {
             optionsGrid.innerHTML = '';
             
-            // 1. 渲染所有選項
             allFoodOptions.forEach((item, index) => {
                 const btn = document.createElement('button');
                 const isSelected = selectedIndices.has(index);
+                const displayName = getFoodName(item);
                 
-                btn.className = `option-btn w-full py-2 px-3 rounded-xl flex items-center justify-center gap-2 font-bold text-base ${isSelected ? 'selected' : 'unselected'}`;
+                btn.className = `option-btn w-full p-2 rounded-xl flex items-center justify-center gap-2 font-bold text-base ${isSelected ? 'selected' : 'unselected'}`;
                 btn.onclick = () => toggleOption(index);
                 
                 btn.innerHTML = `
                     <span class="text-xl">${item.icon}</span>
-                    <span>${item.name}</span>
+                    <span>${displayName}</span>
                 `;
                 
                 optionsGrid.appendChild(btn);
             });
 
-            // 2. 渲染「新增自訂」按鈕 (放在最後)
+            // 渲染「新增自訂」按鈕
+            const t = translations[currentLang];
             const addBtn = document.createElement('button');
-            addBtn.className = `add-btn w-full py-2 px-3 rounded-xl flex items-center justify-center gap-2 font-bold text-base`;
+            addBtn.className = `add-btn w-full p-2 rounded-xl flex items-center justify-center gap-2 font-bold text-base`;
             addBtn.onclick = addCustomOption;
             addBtn.innerHTML = `
                 <span class="text-xl">➕</span>
-                <span>自訂...</span>
+                <span>${t.customBtn}</span>
             `;
             optionsGrid.appendChild(addBtn);
+            
+            setTimeout(checkScroll, 0);
         }
 
         function toggleOption(index) {
@@ -353,7 +535,7 @@
             } else {
                 selectedIndices.add(index);
             }
-            renderSelectionGrid(); // 重新渲染按鈕狀態
+            renderSelectionGrid(); 
             updateSelectionUI();
         }
 
@@ -367,18 +549,18 @@
         }
 
         function updateSelectionUI() {
+            const t = translations[currentLang];
             const count = selectedIndices.size;
-            selectedCountEl.textContent = `已選: ${count}`;
+            selectedCountEl.textContent = `${t.selectedPrefix}${count}`;
             
-            // 至少要選一個才能開始
             if (count === 0) {
                 goSlotBtn.disabled = true;
                 goSlotBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                goSlotBtn.innerText = "請至少選擇一項";
+                goSlotBtn.innerText = t.selectAtLeastOne;
             } else {
                 goSlotBtn.disabled = false;
                 goSlotBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                goSlotBtn.innerText = "前往拉霸機 👉";
+                goSlotBtn.innerText = t.goToSlot;
             }
         }
 
@@ -386,16 +568,14 @@
         function goToSlotMachine() {
             if (selectedIndices.size === 0) return;
 
-            // 準備拉霸機資料 (使用 allFoodOptions)
+            // 每次進入拉霸機都重新抓取目前的選項和語言
             activeOptions = allFoodOptions
                 .filter((_, index) => selectedIndices.has(index))
-                .map(item => ({ ...item, weight: 100 })); // 重置權重
+                .map(item => ({ ...item, weight: 100 })); 
 
-            // UI 切換動畫
             selectionPage.classList.add('hidden-left');
             slotPage.classList.remove('hidden-right');
             
-            // 重置拉霸機顯示
             resetSlotDisplay();
         }
 
@@ -405,22 +585,24 @@
         }
 
         function resetSlotDisplay() {
-            displayEl.textContent = "準備好了嗎？";
+            const t = translations[currentLang];
+            displayEl.textContent = t.slotReady;
             displayEl.classList.remove('blur-motion');
             resultMsg.style.opacity = '0';
             mapsBtn.classList.add('hidden');
             mapsBtn.classList.remove('flex');
             spinBtn.disabled = false;
-            spinBtn.innerHTML = `<span>🎰</span> 幫我選！`;
+            spinBtn.innerHTML = `<span>${t.spinBtn}</span>`;
         }
 
-        // === 拉霸機邏輯 (使用 activeOptions) ===
+        // === 拉霸機邏輯 ===
         function startSpin() {
             if (isSpinning) return;
-
+            
+            const t = translations[currentLang];
             isSpinning = true;
             spinBtn.disabled = true;
-            spinBtn.innerHTML = `<span>🎲</span> 選擇中...`;
+            spinBtn.innerHTML = `<span>${t.spinning}</span>`;
             
             resultMsg.style.opacity = '0';
             mapsBtn.classList.add('hidden');
@@ -430,15 +612,14 @@
             let counter = 0;
             const totalSpins = 30 + Math.floor(Math.random() * 10);
 
-            // 清除碎花
             const canvas = document.getElementById('confetti-canvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const runLoop = () => {
-                // 從 activeOptions 隨機選
                 const visualRandom = activeOptions[Math.floor(Math.random() * activeOptions.length)];
-                displayEl.textContent = `${visualRandom.icon} ${visualRandom.name}`;
+                const displayName = getFoodName(visualRandom);
+                displayEl.textContent = `${visualRandom.icon} ${displayName}`;
                 counter++;
 
                 if (counter < totalSpins) {
@@ -470,8 +651,9 @@
 
         function finishSpin() {
             const winner = getWeightedWinner();
+            const t = translations[currentLang];
+            const displayName = getFoodName(winner);
             
-            // 降低該選項權重
             activeOptions.forEach(item => {
                 if (item.name === winner.name) {
                     item.weight = 10;
@@ -479,17 +661,29 @@
             });
 
             displayEl.classList.remove('blur-motion');
-            displayEl.innerHTML = `<span class="text-red-600 block transform scale-110 transition-transform">${winner.icon} ${winner.name}</span>`;
+            displayEl.innerHTML = `<span class="text-red-600 block transform scale-110 transition-transform">${winner.icon} ${displayName}</span>`;
             
-            resultMsg.textContent = `就決定是 ${winner.name} 了！`;
+            resultMsg.textContent = `${t.resultPrefix}${displayName}${t.resultSuffix}`;
             resultMsg.style.opacity = '1';
 
-            spinBtn.innerHTML = `<span>🔄</span> 再選一次`;
+            spinBtn.innerHTML = `<span>${t.spinAgain}</span>`;
             spinBtn.disabled = false;
             
-            // Google Maps
-            const searchTerm = winner.search ? winner.search : `${winner.name}餐廳`;
+            // 搜尋關鍵字邏輯
+            let searchTerm = "";
+            if (currentLang === 'en') {
+                 // 英文模式：如果有特定英文搜尋詞就用，否則用 名稱 + restaurant
+                 searchTerm = winner.search_en ? winner.search_en : (displayName + t.searchSuffix);
+            } else {
+                 // 中文模式：如果有特定搜尋詞就用，否則用 名稱 + 餐廳
+                 searchTerm = winner.search ? winner.search : (displayName + t.searchSuffix);
+            }
+            
             mapsBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerm)}`;
+            
+            // 更新 Maps 按鈕文字 (切換語言後需要重刷)
+            mapsBtn.querySelector('span').textContent = t.searchNearby;
+            
             mapsBtn.classList.remove('hidden');
             mapsBtn.classList.add('flex');
 
@@ -561,6 +755,7 @@
             const canvas = document.getElementById('confetti-canvas');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            checkScroll(); // Resize 時也要重新檢查捲動箭頭
         });
 
         // 啟動應用
